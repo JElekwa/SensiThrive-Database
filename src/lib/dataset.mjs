@@ -85,11 +85,16 @@ function index(d) {
   d.brandMap = by(d.brands);
 
   // ingredients: merge same-name entries from the cleaning and personal-care lists
+  const SAME = { 'sodium-lauryl-sulfate-sodium-laureth-sulfate': 'sodium-lauryl-sulfate', 'polyethylene-glycol': 'peg' };
   const merged = new Map();
   for (const i of d.ingredients) {
-    const key = slugify(i.name.split('(')[0]);
+    let key = slugify(i.name.split('(')[0]);
+    key = SAME[key] || key;
     if (!merged.has(key)) merged.set(key, { slug: key, name: i.name, entries: [] });
-    merged.get(key).entries.push({ context: i.context, blocks: i.blocks });
+    const m = merged.get(key);
+    if (i.name.length > m.name.length && key !== 'peg') m.name = i.name;
+    if (key === 'peg') m.name = 'PEG (Polyethylene Glycol)';
+    m.entries.push({ context: i.context, blocks: i.blocks });
   }
   d.ingredients = [...merged.values()].sort((a, b) => a.name.localeCompare(b.name));
   for (const i of d.ingredients) i.url = url.ingredient(i);
