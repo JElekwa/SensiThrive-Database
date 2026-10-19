@@ -3,6 +3,7 @@
 // usage: node scripts/build.mjs        (CONTENT_SOURCE=supabase to read content from Supabase)
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import { site } from '../site.config.mjs';
 import { loadDataset } from '../src/lib/dataset.mjs';
@@ -12,7 +13,7 @@ import * as S from '../src/pages/static.mjs';
 import { buildSearchIndex } from '../src/lib/search-index.mjs';
 import { llmsTxt, llmsFullTxt } from '../src/lib/llms.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
 const t0 = Date.now();
 

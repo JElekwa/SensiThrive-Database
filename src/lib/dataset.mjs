@@ -2,10 +2,11 @@
 // Source: local JSON (data/guide.json + data/overrides.json) or Supabase (phase 3).
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tiers } from '../../site.config.mjs';
 import { loadFromSupabase, supabaseConfigured } from './supabase.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 export const url = {
   section: (s) => `/guide/${s}`,
