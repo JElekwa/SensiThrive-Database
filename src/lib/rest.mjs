@@ -9,7 +9,10 @@ export const hasSupabase = (needService = false) => !!(sbUrl() && (needService ?
 
 function headers(service, extra = {}) {
   const key = service ? serviceKey() : anonKey() || serviceKey();
-  return { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json', ...extra };
+  // Legacy anon/service_role keys are JWTs and also go in Authorization. The newer
+  // sb_publishable_/sb_secret_ keys are not JWTs and belong in the apikey header only.
+  const auth = key.startsWith('eyJ') ? { authorization: `Bearer ${key}` } : {};
+  return { apikey: key, ...auth, 'content-type': 'application/json', ...extra };
 }
 
 async function request(path, { method = 'GET', body, service = false, prefer, range, timeoutMs = 15000 } = {}) {
