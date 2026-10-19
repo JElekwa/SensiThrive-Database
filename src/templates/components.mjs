@@ -2,6 +2,7 @@ import { site, tiers, statuses } from '../../site.config.mjs';
 import { esc, html, linkifyArchived, initials } from '../lib/html.mjs';
 import { url } from '../lib/dataset.mjs';
 import { icon } from './icons.mjs';
+import { productVisual } from './visuals.mjs';
 
 export const tierBadge = (tier, { label } = {}) =>
   tier ? `<span class="badge t-${tier}" title="${esc(tiers[tier]?.short || '')}">${esc(label || tiers[tier]?.label || tier)}</span>` : '';
@@ -21,7 +22,7 @@ export function productCard(p, d, { tier } = {}) {
   const cat = d.categoryMap.get(p.categorySlugs[0]);
   return html`<article class="pcard">
   <a class="pcard-link" href="${p.url}">
-    ${monogram(p.name, t)}
+    <span class="pcard-img">${productVisual(p, { tier: t })}</span>
     <span class="pcard-body">
       <span class="pcard-meta">${tierBadge(t)} ${cat ? `<span class="muted">${esc(cat.title)}</span>` : ''}</span>
       <span class="pcard-name">${esc(p.name)}</span>
@@ -57,7 +58,7 @@ export function blocks(list, d, { headingLevel = 2 } = {}) {
           return `<ul class="bullets">${b.items.map((i) => `<li>${linkifyArchived(i)}</li>`).join('')}</ul>`;
         case 'tier':
           return html`<section class="tier tier-${b.tier}">
-  <header class="tier-h">${tierBadge(b.tier)}<${h}>${esc(cleanLabel(b.label, b.tier))}</${h}></header>
+  <header class="tier-h">${tierBadge(b.tier)}<${h}>${esc(cleanTierLabel(b.label, b.tier))}</${h}></header>
   <p class="tier-def">${esc(tiers[b.tier]?.short || '')}</p>
   ${b.notes.map((n) => `<p class="note">${linkifyArchived(n)}</p>`)}
   ${b.items.length ? `<ul class="plist">${b.items.map((it) => itemRow(it, d, b.tier)).join('')}</ul>` : ''}
@@ -75,7 +76,7 @@ export function blocks(list, d, { headingLevel = 2 } = {}) {
     .join('\n');
 }
 
-function cleanLabel(label, tier) {
+export function cleanTierLabel(label, tier) {
   const base = tiers[tier]?.label || label;
   const extra = label.replace(/^(Best|Good|Simply Unscented|Less[- ]?toxic Alternatives?|Not as Good as Good but Widely Available)/i, '').trim();
   return extra ? `${base} ${extra}` : label.match(/alternatives/i) ? 'Less Toxic Alternatives' : base;

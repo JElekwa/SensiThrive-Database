@@ -64,6 +64,8 @@ create table if not exists public.products (
   affiliate_url text,                              -- your tracked link; wins over official_url
   affiliate_network text,                          -- e.g. 'amazon-ca', 'awin', 'impact', 'iherb'
   retailer_name text,                              -- shown on the button: "Check price at ..."
+  image_url     text,                              -- product photo you have the right to use (null = illustration)
+  image_credit  text,                              -- photo credit/licence line, e.g. "Photo: Brand press kit"
   update_2026   jsonb,
   last_verified date,
   notes_internal text,                             -- private editor notes (not published)
@@ -154,7 +156,7 @@ drop policy if exists "public read" on public.products;
 create policy "public read" on public.products for select to anon, authenticated using (true);
 revoke select on public.products from anon, authenticated;
 grant select (slug, name, brand_slug, brand_name, websites, status, official_url, affiliate_url, affiliate_network,
-              retailer_name, update_2026, last_verified, created_at, updated_at) on public.products to anon, authenticated;
+              retailer_name, image_url, image_credit, update_2026, last_verified, created_at, updated_at) on public.products to anon, authenticated;
 
 -- link_clicks and contact_messages: no anon policies at all (service role only)
 

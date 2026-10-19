@@ -97,6 +97,7 @@ export const productLD = (p, brandName) => {
     brand: { '@type': 'Brand', name: brandName },
     description: `${p.name} was rated “${tiers[p.topTier]?.label || 'listed'}” in the EHANS Guide to Less Toxic Products. ${tiers[p.topTier]?.short || ''}`.trim(),
   };
+  if (p.image) ld.image = /^https?:/.test(p.image) ? p.image : abs(p.image);
   if (site.productReviewSchema && p.topTier && tiers[p.topTier]) {
     ld.review = {
       '@type': 'Review',

@@ -8,7 +8,11 @@ import { layout } from '../templates/layout.mjs';
 import { icon } from '../templates/icons.mjs';
 import {
   tierBadge, statusChip, saveButton, productCard, blocks, originalNote, updatePanel, sectionIcon, linkTile, disclosureLine, monogram,
+  cleanTierLabel,
 } from '../templates/components.mjs';
+import {
+  illustration, categoryShape, productVisual, chemTile, ingredientMatchers, mentionedIngredients, linkIngredientTerms,
+} from '../templates/visuals.mjs';
 
 const firstText = (bl) => {
   for (const b of bl || []) {
@@ -199,25 +203,121 @@ ${g.blocks?.length ? `<div class="prose original">${blocks(g.blocks, d)}</div>${
 }
 
 // ------------------------------------------------------------------ category
+// Very long print paragraphs are hard to read on a phone. Break them at sentence boundaries into
+// chunks of roughly 60+ words; every word stays the same and in the same order.
+function splitLongParagraph(b) {
+  if (b.type !== 'p' || b.text.split(/\s+/).length < 110) return [b];
+  const sentences = b.text.split(/(?<=[a-z0-9)%”"]{2}[.!?])\s+(?=[A-Z“"])/);
+  const out = [];
+  let cur = '';
+  for (const s of sentences) {
+    cur = cur ? `${cur} ${s}` : s;
+    if (cur.split(/\s+/).length >= 60) { out.push(cur); cur = ''; }
+  }
+  if (cur) cur.split(/\s+/).length < 25 && out.length ? (out[out.length - 1] += ` ${cur}`) : out.push(cur);
+  return out.map((text) => ({ type: 'p', text }));
+}
+
+// A product as a visual card: picture (photo or illustration), brand, name, and the guide's
+// original listing line (which often names extra variants).
+function productTile(it, d, tier, cat) {
+  const p = d.productMap.get(it.product);
+  const extra = it.text.length > p.name.length + 3 ? it.text : '';
+  const q = `${p.name} ${p.brand} ${it.text}`.toLowerCase();
+  return html`<article class="pc" data-q="${esc(q)}">
+  <a class="pc-link" href="${p.url}">
+    <span class="pc-img">${productVisual(p, { tier, category: cat.slug })}${tierBadge(tier)}</span>
+    <span class="pc-body">
+      <span class="pc-brand">${esc(p.brand)}</span>
+      <span class="pc-name">${esc(p.name)}</span>
+      ${extra ? `<span class="pc-var" title="${esc(extra)}">${esc(extra)}</span>` : ''}
+    </span>
+  </a>
+  ${saveButton(p.slug, p.name, { compact: true })}
+</article>`;
+}
+
+function tierSection(b, d, c, hl) {
+  const groups = [];
+  let cur = { head: null, items: [] };
+  for (const it of b.items) {
+    if (it.subhead) { if (cur.items.length || cur.head) groups.push(cur); cur = { head: it.text, items: [] }; }
+    else cur.items.push(it);
+  }
+  if (cur.items.length || cur.head) groups.push(cur);
+  const count = b.items.filter((it) => it.product && d.productMap.has(it.product)).length;
+  return html`<section class="tier tier-${b.tier}" id="tier-${b.tier}">
+  <header class="tier-h">${tierBadge(b.tier)}<${hl}>${esc(cleanTierLabel(b.label, b.tier))}</${hl}>${count ? `<span class="tier-count">${count} product${count === 1 ? '' : 's'}</span>` : ''}</header>
+  <p class="tier-def">${esc(tiers[b.tier]?.short || '')}</p>
+  ${b.notes.map((x) => `<p class="note">${linkifyArchived(x)}</p>`)}
+  ${groups.map((g) => html`${g.head ? `<h3 class="pc-sub">${esc(g.head)}</h3>` : ''}
+  <div class="pc-row">${g.items.map((it) => (it.product && d.productMap.has(it.product)
+    ? productTile(it, d, b.tier, c)
+    : `<p class="pc-plain">${linkifyArchived(it.text)}</p>`))}</div>`)}
+  ${count > 2 ? `<button type="button" class="btn btn-ghost pc-more" data-more="${count}" hidden>Show all ${count}</button>` : ''}
+</section>`;
+}
+
 export function categoryPage(d, c) {
   const s = d.sectionMap.get(c.section);
   const n = countTiers(c);
-  const tierBlocks = c.blocks.filter((b) => b.type === 'tier');
   const siblings = (c.group ? d.groupMap.get(c.group).categories : s.categories || []).filter((x) => x !== c.slug).map((x) => d.categoryMap.get(x));
   const lead = firstText(c.blocks);
+  const shape = categoryShape(c.slug);
+
+  // split the original text: background prose, product tiers, and tip/home-made/alert boxes
+  const proseB = c.blocks.filter((b) => ['p', 'lines', 'list'].includes(b.type)).flatMap(splitLongParagraph);
+  const tierB = c.blocks.filter((b) => b.type === 'tier');
+  const boxB = c.blocks.filter((b) => ['tips', 'homemade', 'alert'].includes(b.type));
+  const textOf = (bl) => bl.map((b) => b.text || (b.lines || b.items || []).join(' ')).join(' ');
+  const matchers = ingredientMatchers(d, ingredientKeywords);
+  const watch = mentionedIngredients(textOf(proseB) + ' ' + boxB.map((b) => textOf(b.blocks)).join(' '), matchers);
+
+  // keep the opening visible; fold the rest of a long background behind "Read more"
+  const words = textOf(proseB).split(/\s+/).length;
+  const fold = tierB.length && proseB.length > 2 && words > 220;
+  const leadN = fold ? (proseB[0]?.text?.length < 220 ? 2 : 1) : proseB.length;
+  const prose = (bl) => linkIngredientTerms(blocks(bl, d), matchers);
+  const tierEntries = Object.entries(n).sort((a, b) => (tiers[b[0]]?.rank ?? 0) - (tiers[a[0]]?.rank ?? 0));
+
   const content = html`
-<header class="page-h">
-  <p class="eyebrow">${esc(c.groupTitle || s.title)}</p>
-  <h1>${esc(c.title)}</h1>
-  <div class="meta-row">
-    ${Object.entries(n).sort((a, b) => (tiers[b[0]]?.rank ?? 0) - (tiers[a[0]]?.rank ?? 0)).map(([t, k]) => `<a class="meta-pill" href="#tier-${t}">${tierBadge(t)} ${k}</a>`)}
-    <span class="muted small">Revised ${esc(c.revised)}</span>
+<header class="page-h cat-h">
+  <div>
+    <p class="eyebrow">${esc(c.groupTitle || s.title)}</p>
+    <h1>${esc(c.title)}</h1>
+    <p class="muted small">${c.products.length ? `${c.products.length} products rated · ` : ''}Revised ${esc(c.revised)} in the original guide</p>
   </div>
+  <div class="cat-art">${illustration(shape, { tier: 'best', accent: c.slug })}</div>
 </header>
-${originalNote({ revised: c.revised })}
-<div class="prose original">
-${blocks(c.blocks, d).replace(/<section class="tier tier-([a-z-]+)">/g, (m, t) => m.replace('<section', `<section id="tier-${t}"`))}
-</div>
+${tierEntries.length || watch.length ? html`<section class="glance" aria-label="At a glance">
+  ${tierEntries.length ? html`<div class="glance-tiers">${tierEntries.map(([t, k]) => html`<a class="gt gt-${t}" href="#tier-${t}">
+    <span class="gt-n">${k}</span><span class="gt-l">${esc(tiers[t]?.label || t)}</span><span class="gt-d">${esc(tiers[t]?.short || '')}</span>
+  </a>`)}</div>` : ''}
+  ${watch.length ? html`<div class="watch">
+    <h2 class="glance-h">${icon('flask', { size: 18 })} Ingredients this guide warns about</h2>
+    <div class="chem-row">${watch.map((m) => chemTile(m.i))}</div>
+  </div>` : ''}
+</section>` : ''}
+${proseB.length ? html`<section class="bg">
+  ${fold ? `<h2 class="h-sec">${icon('book', { size: 20 })} Why it matters</h2>` : ''}
+  <div class="prose original">
+    ${prose(proseB.slice(0, leadN))}
+    ${fold ? html`<details class="more">
+      <summary><span class="more-open">Read the full background</span><span class="more-close">Show less</span> <span class="muted small">${Math.max(1, Math.round((words - textOf(proseB.slice(0, leadN)).split(/\s+/).length) / 200))} min read</span></summary>
+      ${prose(proseB.slice(leadN))}
+    </details>` : ''}
+  </div>
+  ${originalNote({ revised: c.revised })}
+</section>` : originalNote({ revised: c.revised })}
+${tierB.length ? html`<section class="picks" id="products">
+  <div class="picks-h">
+    <h2 class="h-sec">The guide’s picks</h2>
+    ${c.products.length > 6 ? `<label class="pfilter">${icon('search', { size: 18 })}<span class="sr">Filter these products</span><input id="pfilter" type="search" placeholder="Filter by product or brand" autocomplete="off" enterkeyhint="search"></label>` : ''}
+  </div>
+  <p class="pfilter-status muted small" aria-live="polite" hidden></p>
+  ${tierB.map((b) => tierSection(b, d, c, 'h3'))}
+</section>` : ''}
+${boxB.length ? `<div class="prose boxes">${linkIngredientTerms(blocks(boxB, d), matchers)}</div>` : ''}
 ${updatePanel(c.update2026, { what: `these ${c.title.toLowerCase()} recommendations` })}
 ${c.products.length ? disclosureLine() : ''}
 ${siblings.length ? html`<section class="band"><h2 class="h-sec">Related in ${esc(c.groupTitle || s.title)}</h2><div class="tiles tiles-sm">${siblings.slice(0, 8).map((x) => linkTile({ href: x.url, title: x.title, count: x.products.length || null, ic: sectionIcon(s.slug) }))}</div>${siblings.length > 8 ? `<p><a href="${c.group ? d.groupMap.get(c.group).url : url.section(s.slug)}">All ${siblings.length + 1} topics in ${esc(c.groupTitle || s.title)} ${icon('arrow', { size: 16 })}</a></p>` : ''}</section>` : ''}
@@ -290,11 +390,12 @@ export function productPage(d, p) {
   const content = html`
 <article class="product">
   <header class="product-h">
-    ${monogram(p.name, p.topTier)}
+    <span class="product-art">${productVisual(p)}</span>
     <div>
       <p class="eyebrow">${brand ? `<a href="${brand.url}">${esc(brand.name)}</a>` : esc(p.brand)}</p>
       <h1>${esc(p.name)}</h1>
       <div class="meta-row">${tierBadge(p.topTier)} ${statusChip(p.status)}</div>
+      ${p.image && p.imageCredit ? `<p class="muted small">${esc(p.imageCredit)}</p>` : ''}
     </div>
   </header>
 

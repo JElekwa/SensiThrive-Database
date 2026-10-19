@@ -3,7 +3,7 @@ import { hasSupabase, selectAll } from './rest.mjs';
 
 export const supabaseConfigured = () => hasSupabase();
 
-const PRODUCT_COLS = 'slug,name,brand_slug,brand_name,websites,status,official_url,affiliate_url,affiliate_network,retailer_name,update_2026,last_verified';
+const PRODUCT_COLS = 'slug,name,brand_slug,brand_name,websites,status,official_url,affiliate_url,affiliate_network,retailer_name,image_url,image_credit,update_2026,last_verified';
 
 export async function loadFromSupabase() {
   const [sections, groups, categories, articles, brands, products, appearances, ingredients] = await Promise.all([
@@ -52,7 +52,7 @@ export async function loadFromSupabase() {
       slug: p.slug, name: p.name, brand: p.brand_name, brandSlug: p.brand_slug, websites: p.websites || [],
       appearances: apps.get(p.slug) || [],
       status: p.status, officialUrl: p.official_url, affiliateUrl: p.affiliate_url, affiliateNetwork: p.affiliate_network,
-      retailerName: p.retailer_name, update2026: p.update_2026, lastVerified: p.last_verified,
+      retailerName: p.retailer_name, image: p.image_url || null, imageCredit: p.image_credit || null, update2026: p.update_2026, lastVerified: p.last_verified,
     })),
     ingredients: ingredients.map((i) => ({ slug: i.slug, name: i.name, context: i.context, blocks: i.blocks, update2026: i.update_2026 })),
   };

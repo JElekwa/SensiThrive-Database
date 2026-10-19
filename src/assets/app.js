@@ -291,6 +291,35 @@
     });
   }
 
+  // ---------------------------------------------------------------- category picks
+  // Swipeable tier rows on phones ("Show all" expands to a grid) and a live product filter.
+  function initPicks() {
+    const picks = $('.picks');
+    if (!picks) return;
+    $$('.pc-more', picks).forEach((b) => {
+      b.hidden = false;
+      b.addEventListener('click', () => b.closest('.tier').classList.add('expanded'));
+    });
+    const f = $('#pfilter');
+    const status = $('.pfilter-status');
+    if (!f) return;
+    const cards = $$('.pc', picks);
+    f.addEventListener('input', () => {
+      const toks = f.value.toLowerCase().split(/\s+/).filter(Boolean);
+      picks.classList.toggle('filtering', toks.length > 0);
+      let shown = 0;
+      for (const c of cards) {
+        const hit = toks.every((t) => c.dataset.q.includes(t));
+        c.hidden = !hit;
+        if (hit) shown++;
+      }
+      $$('.tier', picks).forEach((t) => { t.hidden = toks.length > 0 && !$$('.pc', t).some((c) => !c.hidden); });
+      $$('.pc-plain, .pc-sub', picks).forEach((e) => { e.hidden = toks.length > 0; });
+      status.hidden = !toks.length;
+      status.textContent = shown ? `${shown} of ${cards.length} products match “${f.value.trim()}”` : `No products match “${f.value.trim()}”. Try a brand name or a word like “unscented”.`;
+    });
+  }
+
   // ---------------------------------------------------------------- shell
   function initShell() {
     const d = $('.drawer');
@@ -308,7 +337,7 @@
   }
 
   function boot() {
-    initShell(); syncSaveButtons(); initSearch(); initChecker(); initSwaps(); initSaved(); initForms(); initSW();
+    initShell(); syncSaveButtons(); initPicks(); initSearch(); initChecker(); initSwaps(); initSaved(); initForms(); initSW();
   }
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : boot();
 })();

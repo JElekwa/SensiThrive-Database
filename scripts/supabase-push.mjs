@@ -50,7 +50,7 @@ if (withOverrides) {
   const prods = Object.entries(ov.products || {}).map(([slug, o]) => ({
     slug,
     status: o.status || 'unverified', official_url: o.officialUrl || null, affiliate_url: o.affiliateUrl || null,
-    affiliate_network: o.affiliateNetwork || null, retailer_name: o.retailerName || null, update_2026: o.update2026 || null, last_verified: o.lastVerified || null,
+    affiliate_network: o.affiliateNetwork || null, retailer_name: o.retailerName || null, image_url: o.image || null, image_credit: o.imageCredit || null, update_2026: o.update2026 || null, last_verified: o.lastVerified || null,
   }));
   if (prods.length) await step(`product overrides (${prods.length})`, async () => { for (const { slug, ...v } of prods) await updateWhere('products', 'slug', slug, v); });
   for (const t of ['categories', 'articles']) {

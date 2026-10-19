@@ -42,8 +42,10 @@ http.createServer(async (req, res) => {
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = fs.existsSync(f + '.html') ? f + '.html' : path.join(f, 'index.html');
     if (!fs.existsSync(f)) { res.writeHead(404, { 'content-type': TYPES['.html'] }); return res.end(fs.readFileSync(path.join(DIST, '404.html'))); }
     res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' });
-    fs.createReadStream(f).pipe(res);
+    fs.createReadStream(f).on('error', () => res.end()).pipe(res);
   } catch (e) {
-    res.writeHead(500); res.end(String(e));
+    // e.g. dist/ was being rebuilt mid-request: don't crash the preview
+    if (!res.headersSent) res.writeHead(500);
+    res.end(String(e));
   }
 }).listen(PORT, () => console.log(`Preview: http://localhost:${PORT}`));

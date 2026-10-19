@@ -20,6 +20,8 @@
 | `affiliate_url` | `https://www.amazon.ca/dp/…?tag=sensithrive-20` | used instead of `official_url` when set |
 | `affiliate_network` | `amazon-ca` | for your own reporting |
 | `retailer_name` | `Amazon.ca` | button reads “Check price at Amazon.ca” |
+| `image_url` | `https://…/badger-spf30.jpg` | product photo on cards and the product page. Only use photos you have the right to publish (brand press kit or written permission, your own photo, an affiliate program's licensed image, or an openly licensed source). Empty = the built-in illustration |
+| `image_credit` | `Photo: Badger Balm press kit` | shown under the photo on the product page; required for openly licensed photos |
 | `last_verified` | `2026-10-19` | |
 | `update_2026` | see below | optional note shown on the product page |
 | `notes_internal` | anything | private, never published |
@@ -52,7 +54,7 @@ New products must meet the same criteria. Insert a row in `products` (slug, name
 
 ## Local-only mode (no Supabase)
 
-Put the same fields in `data/overrides.json` (camelCase: `status`, `officialUrl`, `affiliateUrl`, `retailerName`, `update2026`, `lastVerified`) and run `node scripts/build.mjs`. `node scripts/supabase-push.mjs --with-overrides` copies them into Supabase later.
+Put the same fields in `data/overrides.json` (camelCase: `status`, `officialUrl`, `affiliateUrl`, `retailerName`, `image`, `imageCredit`, `update2026`, `lastVerified`) and run `node scripts/build.mjs`. `node scripts/supabase-push.mjs --with-overrides` copies them into Supabase later.
 
 ## Re-parsing the original guide
 
