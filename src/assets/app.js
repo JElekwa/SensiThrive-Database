@@ -271,6 +271,9 @@
     $$('form[data-ajax]').forEach((f) => {
       const topic = new URLSearchParams(location.search).get('topic');
       if (topic && f.topic) f.topic.value = topic;
+      const qs = new URLSearchParams(location.search);
+      if (qs.has('sent')) $('.form-status', f).textContent = 'Thank you. Your message was sent.';
+      if (qs.has('error')) $('.form-status', f).textContent = 'Sorry, something went wrong. Please email us directly.';
       f.addEventListener('submit', async (e) => {
         e.preventDefault();
         const status = $('.form-status', f);

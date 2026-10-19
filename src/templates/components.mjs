@@ -117,6 +117,6 @@ export function linkTile({ href, title, text, ic, count }) {
 }
 
 export const disclosureLine = () =>
-  `<p class="disclosure">${icon('info', { size: 16 })} Some outbound links may earn ${site.name} a commission at no cost to you. Ratings come from the EHANS guide and our published standards, never from commissions. <a href="/affiliate-disclosure">Disclosure</a></p>`;
+  `<p class="disclosure">${icon('info', { size: 16 })}<span>Some outbound links may earn ${site.name} a commission at no cost to you. Ratings come from the EHANS guide and our published standards, never from commissions. <a href="/affiliate-disclosure">Disclosure</a></span></p>`;
 
 export { url };

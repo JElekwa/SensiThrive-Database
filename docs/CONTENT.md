@@ -1,0 +1,65 @@
+# Managing content
+
+## The two layers
+
+| Layer | What | Where | Edited? |
+|---|---|---|---|
+| **Original** | EHANS text, ratings, recipes (2011) | `blocks` columns; `product_appearances.original_text` | **Never rewritten.** Fix only clear extraction errors. |
+| **2026** | Status, links, updates, sources | `products.*`, `categories.update_2026`, `articles.update_2026`, `ingredients.update_2026` | Yes, this is your work. |
+
+## Re-checking a product (Supabase → Table Editor → `products`)
+
+1. Find the product (filter by `slug` or `name`). The `review_queue` view lists products by recent clicks: start with what people are looking for.
+2. Check the current label against [/ingredients](https://sensithrive.com/ingredients) and the rating rules in `/editorial-standards`.
+3. Fill in:
+
+| Column | Example | Notes |
+|---|---|---|
+| `status` | `active` | `unverified` · `active` · `reformulated` · `renamed` · `discontinued` |
+| `official_url` | `https://druide.ca/…` | the manufacturer's product page |
+| `affiliate_url` | `https://www.amazon.ca/dp/…?tag=sensithrive-20` | used instead of `official_url` when set |
+| `affiliate_network` | `amazon-ca` | for your own reporting |
+| `retailer_name` | `Amazon.ca` | button reads “Check price at Amazon.ca” |
+| `last_verified` | `2026-10-19` | |
+| `update_2026` | see below | optional note shown on the product page |
+| `notes_internal` | anything | private, never published |
+
+`update_2026` is JSON:
+
+```json
+{
+  "text": "Still sold. The 2026 formula adds sodium benzoate as a preservative, which is not on the guide's hazard list.\n\nNow sold in recyclable aluminium bottles.",
+  "date": "2026-10-19",
+  "reviewer": "Jane Smith",
+  "sources": [{ "title": "Druide ingredient list", "url": "https://…" }]
+}
+```
+
+Blank lines in `text` become paragraphs. Use the same format for `categories.update_2026` (for example new regulations, or a discontinued Best pick) and for articles and ingredients.
+
+**Discontinued products stay listed.** Set `status = discontinued` and use `update_2026` to point to the closest alternative.
+
+## Affiliate links
+
+- All outbound buttons go through `/go/<product-slug>`. That function reads Supabase **live**, so a new `affiliate_url` works immediately with no rebuild. Clicks are logged in `link_clicks`.
+- Links are marked `rel="sponsored nofollow"` when an affiliate URL is set.
+- Products with no URL open a web search for the product name. Replace these over time.
+- Useful programs for this audience: Amazon.ca / Amazon.com Associates, Well.ca, iHerb, brand programs on Awin, Impact or ShareASale. Many smaller natural brands run their own programs.
+
+## Adding a product that wasn't in the guide
+
+New products must meet the same criteria. Insert a row in `products` (slug, name, brand_slug, brand_name, status `active`, URLs, an `update_2026` explaining why it qualifies), then a row in `product_appearances`: `id` = `<category>:new-<n>`, the `category_slug`, the `tier`, and `original_text` = the product name. It will appear on the product page and in search. It will **not** appear inside the category's original text, which stays exactly as EHANS wrote it. A "2026 additions" list on category pages is an easy future enhancement.
+
+## Local-only mode (no Supabase)
+
+Put the same fields in `data/overrides.json` (camelCase: `status`, `officialUrl`, `affiliateUrl`, `retailerName`, `update2026`, `lastVerified`) and run `node scripts/build.mjs`. `node scripts/supabase-push.mjs --with-overrides` copies them into Supabase later.
+
+## Re-parsing the original guide
+
+`scripts/source/parse.py` turns `scripts/source/guide.txt` (text of the print guide) into `data/guide.json`:
+
+```bash
+python3 scripts/source/parse.py scripts/source/guide.txt data/guide.json
+```
+
+Product names and brands were extracted automatically. About 5% need a human tidy-up (for example a long store note left in the name, or two items fused by the PDF). Fix those in Supabase (`products.name`, `brand_name`, `brand_slug`), not in the parser output.

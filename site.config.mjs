@@ -9,7 +9,7 @@ export const site = {
   url: env('SITE_URL', 'https://sensithrive.com'),
   tagline: 'The Guide to Less Toxic Products, carried forward',
   description:
-    'Find less toxic personal care, baby care and household cleaning products. SensiThrive carries forward the Environmental Health Association of Nova Scotia’s Guide to Less Toxic Products with 2026 updates.',
+    'Find less toxic personal care, baby and cleaning products. The EHANS Guide to Less Toxic Products, searchable and updated for 2026.',
   locale: 'en_CA',
   language: 'en',
   themeColor: '#4e6537',
@@ -57,6 +57,12 @@ export const site = {
   allowIndexing: env('ALLOW_INDEXING', 'false') === 'true',
   googleSiteVerification: env('GOOGLE_SITE_VERIFICATION', ''),
   bingSiteVerification: env('BING_SITE_VERIFICATION', ''),
+
+  // Thin-content protection: product pages not yet re-checked for 2026 are noindex (still crawlable/linked)
+  // and left out of the sitemap. Category pages carry the SEO weight until products are verified.
+  indexUnverifiedProducts: env('INDEX_UNVERIFIED_PRODUCTS', 'false') === 'true',
+  // Brand pages with fewer products than this are noindex
+  minBrandProductsToIndex: 2,
 
   // Include Product + editorial Review structured data on product pages (EHANS rating as the review)
   productReviewSchema: env('PRODUCT_REVIEW_SCHEMA', 'true') === 'true',

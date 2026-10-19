@@ -220,7 +220,7 @@ ${blocks(c.blocks, d).replace(/<section class="tier tier-([a-z-]+)">/g, (m, t) =
 </div>
 ${updatePanel(c.update2026, { what: `these ${c.title.toLowerCase()} recommendations` })}
 ${c.products.length ? disclosureLine() : ''}
-${siblings.length ? html`<section class="band"><h2 class="h-sec">Related in ${esc(c.groupTitle || s.title)}</h2><div class="tiles tiles-sm">${siblings.map((x) => linkTile({ href: x.url, title: x.title, count: x.products.length || null, ic: sectionIcon(s.slug) }))}</div></section>` : ''}
+${siblings.length ? html`<section class="band"><h2 class="h-sec">Related in ${esc(c.groupTitle || s.title)}</h2><div class="tiles tiles-sm">${siblings.slice(0, 8).map((x) => linkTile({ href: x.url, title: x.title, count: x.products.length || null, ic: sectionIcon(s.slug) }))}</div>${siblings.length > 8 ? `<p><a href="${c.group ? d.groupMap.get(c.group).url : url.section(s.slug)}">All ${siblings.length + 1} topics in ${esc(c.groupTitle || s.title)} ${icon('arrow', { size: 16 })}</a></p>` : ''}</section>` : ''}
 `;
   const prods = c.products.map((p) => d.productMap.get(p.slug));
   const desc = c.products.length
@@ -339,9 +339,11 @@ export function productPage(d, p) {
   const desc = truncate(`${p.name} by ${brand?.name || p.brand}: rated ${tiers[p.topTier]?.label || 'listed'} for ${c0?.title.toLowerCase()} in the EHANS Guide to Less Toxic Products. ${tiers[p.topTier]?.short || ''}`);
   const s = d.sectionMap.get(c0.section);
   const crumbs = [{ name: 'Home', href: '/' }, { name: s.title, href: url.section(s.slug) }, { name: c0.title, href: c0.url }, { name: p.name, href: p.url }];
+  const noindex = p.status === 'unverified' && !site.indexUnverifiedProducts;
   return {
     path: p.url,
-    html: layout({ title: `${p.name}: EHANS rating & where to buy`, description: desc, path: p.url, content, crumbs, jsonld: [productLD(p, brand?.name || p.brand)] }),
+    noindex,
+    html: layout({ title: `${p.name}: EHANS rating & where to buy`, description: desc, path: p.url, content, crumbs, noindex, jsonld: [productLD(p, brand?.name || p.brand)] }),
   };
 }
 
@@ -356,9 +358,12 @@ export function brandPage(d, b) {
 </header>
 <div class="pgrid">${prods.map((p) => productCard(p, d))}</div>
 `;
+  const noindex = prods.length < site.minBrandProductsToIndex;
   return {
     path: b.url,
+    noindex,
     html: layout({
+      noindex,
       title: `${b.name} products: EHANS less toxic ratings`,
       description: truncate(`${prods.length} ${b.name} products rated in the EHANS Guide to Less Toxic Products, including ${prods.slice(0, 3).map((p) => p.name).join(', ')}.`),
       path: b.url,
@@ -431,7 +436,9 @@ ${i.entries.map((e) => html`<section class="prose original"><h2 class="h-sub">${
 ${updatePanel(i.update2026, { what: 'this ingredient summary' })}
 ${mentions.length ? html`<section class="band"><h2 class="h-sec">Mentioned in these guide sections</h2><div class="tiles tiles-sm">${mentions.map((c) => linkTile({ href: c.url, title: c.title, ic: 'leaf' }))}</div></section>` : ''}
 <p><a class="btn btn-ghost" href="/check">Check a label for ${esc(i.name.split('(')[0].trim())}</a></p>`;
-  const desc = truncate(`${i.name}: ${i.entries[0].blocks.find((b) => b.type === 'p')?.text || ''}`);
+  let desc = `${i.name}: ${i.entries[0].blocks.find((b) => b.type === 'p')?.text || ''}`;
+  if (desc.length < 90) desc += ` Why it is on the EHANS list of common hazardous ingredients, and where it is found.`;
+  desc = truncate(desc);
   return { path: i.url, html: layout({ title: `${i.name}: health concerns & where it’s found`, description: desc, path: i.url, content, ogType: 'article', crumbs: [{ name: 'Home', href: '/' }, { name: 'Ingredients', href: '/ingredients' }, { name: i.name, href: i.url }], jsonld: [definedTermLD(i, i.url), articleLD({ title: i.name, description: desc, path: i.url })] }) };
 }
 

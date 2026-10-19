@@ -95,6 +95,7 @@ function index(d) {
     if (i.name.length > m.name.length && key !== 'peg') m.name = i.name;
     if (key === 'peg') m.name = 'PEG (Polyethylene Glycol)';
     m.entries.push({ context: i.context, blocks: i.blocks });
+    if (i.update2026 && !m.update2026) m.update2026 = i.update2026;
   }
   d.ingredients = [...merged.values()].sort((a, b) => a.name.localeCompare(b.name));
   for (const i of d.ingredients) i.url = url.ingredient(i);

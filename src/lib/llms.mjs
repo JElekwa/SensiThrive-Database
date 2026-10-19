@@ -9,7 +9,7 @@ export function llmsTxt(d) {
   out.push('');
   out.push(`> ${site.description}`);
   out.push('');
-  out.push(`${site.name} reproduces and updates "The Guide to Less Toxic Products" by the ${site.source.org} (EHANS), last revised ${site.source.lastRevised}. Please credit EHANS when citing the original ratings and text, and ${site.name} when citing 2026 updates.`);
+  out.push(`${site.name} reproduces and updates "The Guide to Less Toxic Products" by the ${site.source.org}, last revised ${site.source.lastRevised}. Please credit EHANS when citing the original ratings and text, and ${site.name} when citing 2026 updates.`);
   out.push('');
   out.push('Rating categories (from the original guide):');
   for (const k of ['best', 'good', 'less-toxic', 'unscented']) out.push(`- ${tiers[k].label}: ${tiers[k].short}`);
