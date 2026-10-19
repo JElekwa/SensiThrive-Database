@@ -8,7 +8,7 @@ import { layout } from '../templates/layout.mjs';
 import { icon } from '../templates/icons.mjs';
 import {
   tierBadge, statusChip, saveButton, productCard, blocks, originalNote, updatePanel, sectionIcon, linkTile, disclosureLine, monogram,
-  cleanTierLabel,
+  cleanTierLabel, buyAttrs, buyButton, storeButtons,
 } from '../templates/components.mjs';
 import {
   illustration, categoryShape, productVisual, chemTile, ingredientMatchers, mentionedIngredients, linkIngredientTerms,
@@ -224,7 +224,7 @@ function productTile(it, d, tier, cat) {
   const p = d.productMap.get(it.product);
   const extra = it.text.length > p.name.length + 3 ? it.text : '';
   const q = `${p.name} ${p.brand} ${it.text}`.toLowerCase();
-  return html`<article class="pc" data-q="${esc(q)}">
+  return html`<article class="pc" data-q="${esc(q)}"${buyAttrs(p)}>
   <a class="pc-link" href="${p.url}">
     <span class="pc-img">${productVisual(p, { tier, category: cat.slug })}${tierBadge(tier)}</span>
     <span class="pc-body">
@@ -233,6 +233,7 @@ function productTile(it, d, tier, cat) {
       ${extra ? `<span class="pc-var" title="${esc(extra)}">${esc(extra)}</span>` : ''}
     </span>
   </a>
+  <div class="pc-foot">${buyButton(p)}</div>
   ${saveButton(p.slug, p.name, { compact: true })}
 </article>`;
 }
@@ -422,12 +423,13 @@ export function productPage(d, p) {
       </aside>`}
     </div>
 
-    <aside class="buy card">
-      <h2 class="card-h">Where to find it</h2>
-      <a class="btn btn-primary btn-block" href="/go/${p.slug}" rel="${p.affiliateUrl ? 'sponsored nofollow' : 'nofollow'} noopener" target="_blank">
+    <aside class="buy card" id="buy">
+      <h2 class="card-h">${p.shopLinks.length ? 'Where to buy' : 'Where to find it'}</h2>
+      ${p.shopLinks.length ? html`${storeButtons(p)}
+      <p class="muted small">Prices and stock change. Check the current label against the guide’s rating before you buy.</p>` : html`<a class="btn btn-primary btn-block" href="/go/${p.slug}" rel="${p.affiliateUrl ? 'sponsored nofollow' : 'nofollow'} noopener" target="_blank">
         ${hasLink ? `Check price${p.retailerName ? ` at ${esc(p.retailerName)}` : ''}` : 'Find it online'} ${icon('external', { size: 18 })}
       </a>
-      ${hasLink ? '' : '<p class="muted small">We have not matched this product to a retailer yet, so this opens a web search.</p>'}
+      ${hasLink ? '' : '<p class="muted small">We have not matched this product to a retailer yet, so this opens a web search.</p>'}`}
       ${saveButton(p.slug, p.name)}
       ${archived.length ? html`<p class="small">Website listed in the 2011 guide: ${archived.map((w) => linkifyArchived(w)).join(', ')} <span class="muted">(archived copy)</span></p>` : ''}
       ${disclosureLine()}

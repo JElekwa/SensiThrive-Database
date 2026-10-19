@@ -4,7 +4,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -14,7 +14,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 
 async function runFunction(name, req, res, query) {
   const file = path.join(ROOT, 'api', name + '.js');
   if (!fs.existsSync(file)) return false;
-  const mod = await import(file + '?t=' + Date.now());
+  const mod = await import(pathToFileURL(file).href + '?t=' + Date.now());
   let body = '';
   for await (const chunk of req) body += chunk;
   req.query = query;
@@ -32,8 +32,8 @@ http.createServer(async (req, res) => {
   let p = decodeURIComponent(u.pathname);
   const query = Object.fromEntries(u.searchParams);
   try {
-    const go = p.match(/^\/go\/([^/]+)$/);
-    if (go && (await runFunction('go', req, res, { ...query, slug: go[1] }))) return;
+    const go = p.match(/^\/go\/([^/]+)(?:\/([1-3]))?$/);
+    if (go && (await runFunction('go', req, res, { ...query, slug: go[1], ...(go[2] ? { n: go[2] } : {}) }))) return;
     const api = p.match(/^\/api\/([a-z-]+)$/);
     if (api && (await runFunction(api[1], req, res, query))) return;
     let f = path.join(DIST, p);

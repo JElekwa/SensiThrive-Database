@@ -320,6 +320,106 @@
     });
   }
 
+  // ---------------------------------------------------------------- where to buy
+  // Products with store links carry data-buy/data-stores. With a mouse, hovering the product shows a small
+  // panel next to it; on touch screens the "Where to buy" button opens a bottom sheet. One shared panel.
+  const STATUS_NOTE = {
+    active: ['Verified 2026: still sold, ingredients re-checked.', ''],
+    renamed: ['Now sold under a different name or owner.', 'warn'],
+    reformulated: ['The formula has changed since the 2011 guide. Read the current label.', 'warn'],
+  };
+  function initBuy() {
+    let panel, backdrop, current = null, mode = null, showT, hideT;
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const ext = '<svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+    const stores = (el) => { try { return JSON.parse(el.dataset.stores || '[]'); } catch { return []; } };
+
+    function build() {
+      panel = document.createElement('div');
+      panel.className = 'buy-panel';
+      panel.hidden = true;
+      panel.setAttribute('role', 'dialog');
+      backdrop = document.createElement('div');
+      backdrop.className = 'buy-backdrop';
+      backdrop.hidden = true;
+      backdrop.addEventListener('click', hide);
+      document.body.append(backdrop, panel);
+      if (canHover) {
+        panel.addEventListener('mouseenter', () => clearTimeout(hideT));
+        panel.addEventListener('mouseleave', () => mode === 'pop' && (hideT = setTimeout(hide, 250)));
+      }
+    }
+    function fill(el) {
+      const slug = el.dataset.buy;
+      const [note, tone] = STATUS_NOTE[el.dataset.status] || ['', ''];
+      panel.setAttribute('aria-label', `Where to buy ${el.dataset.name}`);
+      panel.innerHTML = `<div class="bp-h"><div><span class="bp-brand">${esc(el.dataset.brand)}</span><strong>${esc(el.dataset.name)}</strong></div><button type="button" class="bp-x" aria-label="Close">&times;</button></div>
+        ${note ? `<p class="bp-status ${tone}">${esc(note)}</p>` : ''}
+        <div class="bp-stores">${stores(el).map(([n, s], i) => `<a class="bp-store${i ? '' : ' first'}" href="/go/${encodeURIComponent(slug)}/${n}" rel="sponsored nofollow noopener" target="_blank"><span>${esc(s)}</span>${ext}</a>`).join('')}</div>
+        <p class="bp-note">Prices and stock change, so check the current label against the guide’s rating. We may earn a commission. <a href="/affiliate-disclosure">Disclosure</a></p>
+        <a class="bp-more" href="/products/${encodeURIComponent(slug)}">Product details</a>`;
+      $('.bp-x', panel).addEventListener('click', hide);
+    }
+    function place(el) {
+      const a = $('.buy-btn, .buy-ic', el) || el;
+      const r = a.getBoundingClientRect();
+      const w = panel.offsetWidth, h = panel.offsetHeight;
+      const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), document.documentElement.clientWidth - w - 8);
+      const top = r.bottom + 8 + h < window.innerHeight - 8 ? r.bottom + 8 : Math.max(8, r.top - h - 8);
+      panel.style.left = `${left + window.scrollX}px`;
+      panel.style.top = `${top + window.scrollY}px`;
+    }
+    function show(el, how) {
+      clearTimeout(hideT); clearTimeout(showT);
+      if (!stores(el).length) return;
+      if (!panel) build();
+      if (current === el && mode === how && !panel.hidden) return;
+      current = el; mode = how;
+      fill(el);
+      panel.classList.toggle('sheet', how === 'sheet');
+      panel.style.left = panel.style.top = '';
+      panel.hidden = false;
+      backdrop.hidden = how !== 'sheet';
+      document.body.classList.toggle('sheet-open', how === 'sheet');
+      if (how === 'pop') place(el);
+      else $('.bp-store', panel)?.focus();
+    }
+    function hide() {
+      clearTimeout(showT); clearTimeout(hideT);
+      if (!panel || panel.hidden) return;
+      const back = mode === 'sheet' ? current : null;
+      panel.hidden = true; backdrop.hidden = true;
+      document.body.classList.remove('sheet-open');
+      current = null; mode = null;
+      $('[data-buy-open]', back || document.body)?.focus?.({ preventScroll: true });
+    }
+
+    // button: opens the panel (sheet on touch, pop-over with a mouse); without JS it links to the product's #buy
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-buy-open]');
+      const el = b?.closest('[data-buy]');
+      if (el) { e.preventDefault(); return show(el, canHover ? 'pop' : 'sheet'); }
+      if (panel && !panel.hidden && mode === 'pop' && !panel.contains(e.target)) hide();
+    });
+    document.addEventListener('keydown', (e) => e.key === 'Escape' && hide());
+    window.addEventListener('scroll', () => mode === 'pop' && hide(), { passive: true });
+
+    if (canHover) {
+      document.addEventListener('mouseover', (e) => {
+        const el = e.target.closest?.('[data-buy]');
+        if (!el) return;
+        clearTimeout(hideT);
+        if (current !== el) { clearTimeout(showT); showT = setTimeout(() => show(el, 'pop'), 350); }
+      });
+      document.addEventListener('mouseout', (e) => {
+        const el = e.target.closest?.('[data-buy]');
+        if (!el || el.contains(e.relatedTarget)) return;
+        clearTimeout(showT);
+        if (current === el && mode === 'pop' && !panel.contains(e.relatedTarget)) hideT = setTimeout(hide, 250);
+      });
+    }
+  }
+
   // ---------------------------------------------------------------- shell
   function initShell() {
     const d = $('.drawer');
@@ -337,7 +437,7 @@
   }
 
   function boot() {
-    initShell(); syncSaveButtons(); initPicks(); initSearch(); initChecker(); initSwaps(); initSaved(); initForms(); initSW();
+    initShell(); syncSaveButtons(); initPicks(); initBuy(); initSearch(); initChecker(); initSwaps(); initSaved(); initForms(); initSW();
   }
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : boot();
 })();

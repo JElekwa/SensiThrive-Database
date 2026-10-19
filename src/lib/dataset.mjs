@@ -8,6 +8,9 @@ import { loadFromSupabase, supabaseConfigured } from './supabase.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
+// statuses whose products may show store links
+export const SHOP_STATUSES = new Set(['active', 'renamed', 'reformulated']);
+
 export const url = {
   section: (s) => `/guide/${s}`,
   category: (c) => `/guide/${c.section}/${c.slug}`,
@@ -64,6 +67,14 @@ function index(d) {
     p.categorySlugs = [...new Set(p.appearances.map((a) => a.category))];
     p.status = p.status || 'unverified';
     p.url = url.product(p);
+    // "Where to buy": up to 3 https links, by position. Shown only once the product has been re-checked,
+    // so nobody is sent to a product EHANS never rated (see SHOP_STATUSES).
+    const seen = new Set();
+    p.links = (Array.isArray(p.links) ? p.links : [])
+      .map((l, i) => ({ position: Number(l.position) || i + 1, store: String(l.store || '').trim().slice(0, 40), url: String(l.url || '').trim(), network: l.network || null }))
+      .filter((l) => l.store && /^https:\/\//i.test(l.url) && l.position >= 1 && l.position <= 3 && !seen.has(l.position) && seen.add(l.position))
+      .sort((a, b) => a.position - b.position);
+    p.shopLinks = SHOP_STATUSES.has(p.status) ? p.links : [];
   }
   // categories: product lists per tier
   for (const c of d.categories) {

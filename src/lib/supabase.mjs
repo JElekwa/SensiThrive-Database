@@ -16,6 +16,19 @@ export async function loadFromSupabase() {
     selectAll('product_appearances', '*', 'category_slug,position'),
     selectAll('ingredients'),
   ]);
+  // "Where to buy" links (migration 20261020000000). Optional: a build must not fail before it is run.
+  let storeLinks = [];
+  try {
+    storeLinks = await selectAll('product_links', 'product_slug,position,store,url,network,active', 'product_slug,position');
+  } catch (e) {
+    console.warn(`product_links not loaded (run supabase/migrations/20261020000000_product_links.sql): ${String(e.message).slice(0, 120)}`);
+  }
+  const linksBy = new Map();
+  for (const l of storeLinks) {
+    if (l.active === false) continue;
+    if (!linksBy.has(l.product_slug)) linksBy.set(l.product_slug, []);
+    linksBy.get(l.product_slug).push({ position: l.position, store: l.store, url: l.url, network: l.network });
+  }
 
   const apps = new Map();
   for (const a of appearances) {
@@ -52,6 +65,7 @@ export async function loadFromSupabase() {
       slug: p.slug, name: p.name, brand: p.brand_name, brandSlug: p.brand_slug, websites: p.websites || [],
       appearances: apps.get(p.slug) || [],
       status: p.status, officialUrl: p.official_url, affiliateUrl: p.affiliate_url, affiliateNetwork: p.affiliate_network,
+      links: linksBy.get(p.slug) || [],
       retailerName: p.retailer_name, image: p.image_url || null, imageCredit: p.image_credit || null, update2026: p.update_2026, lastVerified: p.last_verified,
     })),
     ingredients: ingredients.map((i) => ({ slug: i.slug, name: i.name, context: i.context, blocks: i.blocks, update2026: i.update_2026 })),

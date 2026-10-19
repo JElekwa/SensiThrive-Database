@@ -48,6 +48,25 @@ Blank lines in `text` become paragraphs. Use the same format for `categories.upd
 - Products with no URL open a web search for the product name. Replace these over time.
 - Useful programs for this audience: Amazon.ca / Amazon.com Associates, Well.ca, iHerb, brand programs on Awin, Impact or ShareASale. Many smaller natural brands run their own programs.
 
+## "Where to buy" store links (up to 3 per product)
+
+Hovering a product card (desktop) or tapping **Where to buy** (phone) shows a panel with up to three store buttons. They come from the `product_links` table (run `supabase/migrations/20261020000000_product_links.sql` once).
+
+1. Re-check the product first and set its `status` in `products` to `active`, `renamed` or `reformulated`. **Links on `unverified` or `discontinued` products are never shown** (the build log lists any that are hidden), so nobody is sent to a product EHANS never rated.
+2. Supabase → Table Editor → `product_links` → **Insert row**:
+
+   | Column | Example | Notes |
+   |---|---|---|
+   | `product_slug` | `badger-sunscreen-for-face-and-body-spf-30-unscented` | the end of the product page URL |
+   | `position` | `1` | 1, 2 or 3: button order; 1 is the highlighted button |
+   | `store` | `Amazon.ca` | button label |
+   | `url` | `https://amzn.to/…` | your affiliate link (Amazon: SiteStripe → Text → Short link); must start with `https://` |
+   | `network` | `amazon-ca` | optional, for your own reporting |
+   | `active` | ✓ | untick to hide a link without deleting it |
+3. The URL works at once (buttons go through `/go/<slug>/<position>`, which reads the table live and logs the click with the store name). The panel itself appears after the next deploy; add a Supabase webhook on `product_links` to your Vercel Deploy Hook (see LAUNCH.md) to make that automatic.
+
+Amazon's rules: link to the exact product, don't show Amazon prices or images unless they come from Amazon's API, and keep the Amazon Associates sentence on the disclosure page.
+
 ## Adding a product that wasn't in the guide
 
 New products must meet the same criteria. Insert a row in `products` (slug, name, brand_slug, brand_name, status `active`, URLs, an `update_2026` explaining why it qualifies), then a row in `product_appearances`: `id` = `<category>:new-<n>`, the `category_slug`, the `tier`, and `original_text` = the product name. It will appear on the product page and in search. It will **not** appear inside the category's original text, which stays exactly as EHANS wrote it. A "2026 additions" list on category pages is an easy future enhancement.

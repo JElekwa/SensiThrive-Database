@@ -7,6 +7,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/go/:slug/:n", "destination": "/api/go?slug=:slug&n=:n" },
     { "source": "/go/:slug", "destination": "/api/go?slug=:slug" }
   ],
   "functions": {

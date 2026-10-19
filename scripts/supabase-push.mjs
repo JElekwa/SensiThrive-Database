@@ -53,6 +53,10 @@ if (withOverrides) {
     affiliate_network: o.affiliateNetwork || null, retailer_name: o.retailerName || null, image_url: o.image || null, image_credit: o.imageCredit || null, update_2026: o.update2026 || null, last_verified: o.lastVerified || null,
   }));
   if (prods.length) await step(`product overrides (${prods.length})`, async () => { for (const { slug, ...v } of prods) await updateWhere('products', 'slug', slug, v); });
+  const storeLinks = Object.entries(ov.products || {}).flatMap(([slug, o]) => (o.links || []).slice(0, 3).map((l, i) => ({
+    product_slug: slug, position: Number(l.position) || i + 1, store: l.store, url: l.url, network: l.network || null, active: l.active !== false,
+  })));
+  if (storeLinks.length) await step(`store links (${storeLinks.length})`, () => upsert('product_links', storeLinks, { onConflict: 'product_slug,position' }));
   for (const t of ['categories', 'articles']) {
     const rows = Object.entries(ov[t] || {}).filter(([, o]) => o.update2026);
     if (rows.length) await step(`${t} updates (${rows.length})`, async () => { for (const [slug, o] of rows) await updateWhere(t, 'slug', slug, { update_2026: o.update2026 }); });

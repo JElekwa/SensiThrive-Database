@@ -17,10 +17,27 @@ export const saveButton = (slug, name, { compact = false } = {}) =>
 
 export const monogram = (name, tier) => `<span class="mono t-${tier || 'none'}" aria-hidden="true">${esc(initials(name))}</span>`;
 
+// "Where to buy": data for the hover (desktop) / tap (phone) panel that app.js builds. Store URLs are not
+// in the page: each button goes to /go/<slug>/<position>, which looks the link up live and logs the click.
+export const buyAttrs = (p) =>
+  p.shopLinks?.length
+    ? ` data-buy="${esc(p.slug)}" data-name="${esc(p.name)}" data-brand="${esc(p.brand)}" data-status="${esc(p.status)}" data-stores="${esc(JSON.stringify(p.shopLinks.map((l) => [l.position, l.store])))}"`
+    : '';
+
+export function buyButton(p) {
+  const n = p.shopLinks?.length || 0;
+  if (!n) return `<a class="buy-btn buy-none" href="/go/${esc(p.slug)}" rel="nofollow noopener" target="_blank">${icon('search', { size: 15 })}<span>Find it online</span></a>`;
+  return `<a class="buy-btn" href="${p.url}#buy" data-buy-open aria-haspopup="dialog">${icon('bag', { size: 16 })}<span>Where to buy</span><span class="buy-n" aria-label="${n} store${n === 1 ? '' : 's'}">${n}</span></a>`;
+}
+
+export function storeButtons(p) {
+  return p.shopLinks.map((l, i) => `<a class="btn ${i === 0 ? 'btn-primary' : 'btn-ghost'} btn-block" href="/go/${esc(p.slug)}/${l.position}" rel="sponsored nofollow noopener" target="_blank">${esc(l.store)} ${icon('external', { size: 18 })}</a>`).join('');
+}
+
 export function productCard(p, d, { tier } = {}) {
   const t = tier || p.topTier;
   const cat = d.categoryMap.get(p.categorySlugs[0]);
-  return html`<article class="pcard">
+  return html`<article class="pcard"${buyAttrs(p)}>
   <a class="pcard-link" href="${p.url}">
     <span class="pcard-img">${productVisual(p, { tier: t })}</span>
     <span class="pcard-body">
@@ -29,6 +46,7 @@ export function productCard(p, d, { tier } = {}) {
       <span class="pcard-brand">${esc(p.brand)}</span>
     </span>
   </a>
+  ${p.shopLinks?.length ? `<a class="buy-ic" href="${p.url}#buy" data-buy-open aria-haspopup="dialog" aria-label="Where to buy ${esc(p.name)}">${icon('bag', { size: 18 })}</a>` : ''}
   ${saveButton(p.slug, p.name, { compact: true })}
 </article>`;
 }
