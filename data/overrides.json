@@ -1,0 +1,6 @@
+{
+  "_readme": "2026 review layer for local builds. Keys are slugs. Supabase replaces this file in production (see docs/CONTENT.md).",
+  "products": {},
+  "categories": {},
+  "articles": {}
+}
